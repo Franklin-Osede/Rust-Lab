@@ -1,4 +1,4 @@
-# Rust Lab – Bug Spotting & Testing Mastery
+# Rust Lab – Bug Spotting & Testing
 
 > **Educational Rust project** featuring intentional bug exercises, comprehensive testing strategies, and progressive learning modules covering ownership, concurrency, error handling, and performance optimization.
 
