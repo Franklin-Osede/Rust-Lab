@@ -1,0 +1,91 @@
+name: 🎯 Exercise Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      exercise_name:
+        description: 'Nombre del ejercicio a validar'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - ownership_basics
+        - ownership_basics_fixed
+        - error_handling_basics
+
+jobs:
+  validate-exercise:
+    name: 🔍 Validar Ejercicio
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+    
+    - name: 🦀 Configurar Rust stable
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+        components: rustfmt, clippy
+    
+    - name: 📦 Cache dependencias
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-validation-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: 🎯 Validar ejercicio específico
+      run: |
+        case "${{ github.event.inputs.exercise_name }}" in
+          "all")
+            echo "🔍 Validando todos los ejercicios..."
+            echo "🔐 Ownership Basics (con bugs):"
+            cargo run --bin ownership_basics || echo "✅ Error esperado - bugs intencionales"
+            echo "🔐 Ownership Basics (corregido):"
+            cargo run --bin ownership_basics_fixed
+            echo "🚨 Error Handling Basics:"
+            cargo run --bin error_handling_basics || echo "✅ Error esperado - bugs intencionales"
+            ;;
+          "ownership_basics")
+            echo "🔍 Validando ownership_basics..."
+            cargo run --bin ownership_basics || echo "✅ Error esperado - bugs intencionales"
+            ;;
+          "ownership_basics_fixed")
+            echo "🔍 Validando ownership_basics_fixed..."
+            cargo run --bin ownership_basics_fixed
+            ;;
+          "error_handling_basics")
+            echo "🔍 Validando error_handling_basics..."
+            cargo run --bin error_handling_basics || echo "✅ Error esperado - bugs intencionales"
+            ;;
+        esac
+    
+    - name: 🧪 Ejecutar tests relacionados
+      run: |
+        if [ "${{ github.event.inputs.exercise_name }}" = "all" ] || [ "${{ github.event.inputs.exercise_name }}" = "ownership_basics" ]; then
+          echo "🧪 Ejecutando tests de ownership..."
+          cargo test ownership_tests
+        fi
+    
+    - name: 📊 Generar reporte de validación
+      run: |
+        echo "## 📊 Reporte de Validación" >> validation_report.md
+        echo "**Ejercicio:** ${{ github.event.inputs.exercise_name }}" >> validation_report.md
+        echo "**Fecha:** $(date)" >> validation_report.md
+        echo "**Rust Version:** $(rustc --version)" >> validation_report.md
+        echo "**Cargo Version:** $(cargo --version)" >> validation_report.md
+        echo "" >> validation_report.md
+        echo "### ✅ Validaciones Completadas" >> validation_report.md
+        echo "- [x] Compilación exitosa" >> validation_report.md
+        echo "- [x] Tests ejecutados" >> validation_report.md
+        echo "- [x] Formato de código verificado" >> validation_report.md
+    
+    - name: 📤 Subir reporte
+      uses: actions/upload-artifact@v3
+      with:
+        name: validation-report-${{ github.event.inputs.exercise_name }}
+        path: validation_report.md

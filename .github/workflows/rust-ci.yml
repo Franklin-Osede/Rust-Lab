@@ -1,0 +1,183 @@
+name: 🦀 Rust Lab CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Permite ejecutar manualmente
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Job para compilar y testear
+  test:
+    name: 🧪 Tests & Compilation
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        rust-version: [stable, beta, nightly]
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+    
+    - name: 🦀 Configurar Rust ${{ matrix.rust-version }}
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust-version }}
+        components: rustfmt, clippy
+    
+    - name: 📦 Cache dependencias
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ matrix.rust-version }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ matrix.rust-version }}-
+    
+    - name: 🔨 Compilar proyecto
+      run: cargo build --verbose --all-targets
+    
+    - name: 🧪 Ejecutar tests
+      run: cargo test --verbose
+    
+    - name: 📝 Verificar formato de código
+      run: cargo fmt --all -- --check
+    
+    - name: 🔍 Ejecutar clippy (linter)
+      run: cargo clippy --all-targets --all-features -- -D warnings
+    
+    - name: 📚 Generar documentación
+      run: cargo doc --no-deps --document-private-items
+
+  # Job para benchmarks (solo en stable)
+  benchmark:
+    name: 🚀 Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+    
+    - name: 🦀 Configurar Rust stable
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+        components: rustfmt, clippy
+    
+    - name: 📦 Cache dependencias
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-stable-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: 🏃‍♂️ Ejecutar benchmarks
+      run: cargo bench --features benchmarks
+
+  # Job para verificar ejercicios específicos
+  exercises:
+    name: 🎯 Verificar Ejercicios
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+    
+    - name: 🦀 Configurar Rust stable
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+    
+    - name: 📦 Cache dependencias
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-exercises-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: 🔐 Verificar ejercicios de Ownership
+      run: |
+        echo "🔍 Verificando ownership_basics..."
+        cargo run --bin ownership_basics || echo "✅ Error esperado (bugs intencionales)"
+        
+        echo "🔍 Verificando ownership_basics_fixed..."
+        cargo run --bin ownership_basics_fixed
+    
+    - name: 🚨 Verificar ejercicios de Error Handling
+      run: |
+        echo "🔍 Verificando error_handling_basics..."
+        cargo run --bin error_handling_basics || echo "✅ Error esperado (bugs intencionales)"
+
+  # Job para generar reportes
+  coverage:
+    name: 📊 Coverage Report
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+    
+    - name: 🦀 Configurar Rust stable
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+    
+    - name: 📦 Cache dependencias
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: 🔧 Instalar tarpaulin (coverage tool)
+      run: cargo install cargo-tarpaulin
+    
+    - name: 📊 Generar reporte de cobertura
+      run: cargo tarpaulin --out Html --output-dir coverage/
+    
+    - name: 📤 Subir reporte de cobertura
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage/
+
+  # Job para deployment (si tienes GitHub Pages)
+  deploy:
+    name: 🚀 Deploy Documentation
+    runs-on: ubuntu-latest
+    needs: [test, exercises]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+    
+    - name: 🦀 Configurar Rust stable
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+    
+    - name: 📚 Generar documentación
+      run: cargo doc --no-deps --document-private-items
+    
+    - name: 🚀 Deploy a GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./target/doc
+

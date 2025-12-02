@@ -1,0 +1,62 @@
+[package]
+name = "rust_lab"
+version = "0.1.0"
+edition = "2021"
+description = "Rust Lab - Bug Spotting & Testing Mastery"
+authors = ["Tu Nombre <tu.email@example.com>"]
+license = "MIT"
+repository = "https://github.com/tu-usuario/rust-lab"
+
+[dependencies]
+# Dependencias para testing y debugging
+criterion = { version = "0.5", optional = true }
+proptest = { version = "1.0", optional = true }
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.0"
+
+[[bin]]
+name = "ownership_basics"
+path = "exercises/ownership_borrowing/ownership_basics.rs"
+
+[[bin]]
+name = "ownership_basics_fixed"
+path = "exercises/ownership_borrowing/ownership_basics_fixed.rs"
+
+[[bin]]
+name = "error_handling_basics"
+path = "exercises/error_handling/error_handling_basics.rs"
+
+[[bin]]
+name = "error_handling_basics_fixed"
+path = "exercises/error_handling/error_handling_basics_fixed.rs"
+
+[[bin]]
+name = "concurrency_basics"
+path = "exercises/concurrency/concurrency_basics.rs"
+
+[[bin]]
+name = "concurrency_basics_fixed"
+path = "exercises/concurrency/concurrency_basics_fixed.rs"
+
+[[bin]]
+name = "performance_optimization"
+path = "exercises/performance/performance_optimization.rs"
+
+[[bin]]
+name = "performance_optimization_fixed"
+path = "exercises/performance/performance_optimization_fixed.rs"
+
+[[bin]]
+name = "memory_management"
+path = "exercises/memory_management/memory_management.rs"
+
+[[bin]]
+name = "memory_management_fixed"
+path = "exercises/memory_management/memory_management_fixed.rs"
+
+[features]
+default = []
+benchmarks = ["criterion"]
+property-tests = ["proptest"]
